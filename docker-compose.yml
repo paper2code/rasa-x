@@ -1,3 +1,4 @@
+---
 version: '3.4'
 
 x-geral: &geral
@@ -49,6 +50,9 @@ x-rasa-services: &default-rasa-service
   extra_hosts:
     - vm:0.0.0.0
   image: chatbot-rasa
+  build:
+    context: .
+    dockerfile: chatbot-rasa.Dockerfile
   expose:
     - 5005
   volumes:
@@ -70,6 +74,7 @@ x-rasa-services: &default-rasa-service
     - redis
 
 services:
+
   rasa-x:
     restart: always
     extra_hosts:
@@ -88,6 +93,7 @@ services:
       <<: *rasa_x-credentials
       RABBITMQ_QUEUE: "rasa-production-events"
       DB_DATABASE: "rasa"
+
   rasa-production:
     <<: *default-rasa-service
     environment:
@@ -95,6 +101,7 @@ services:
       RASA_ENVIRONMENT: "production"
       RABBITMQ_QUEUE: "rasa-production-events"
       DB_DATABASE: "tracker"
+
   rasa-worker:
     <<: *default-rasa-service
     environment:
@@ -102,9 +109,13 @@ services:
       RASA_ENVIRONMENT: "worker"
       RABBITMQ_QUEUE: "rasa-worker-events"
       DB_DATABASE: "worker_tracker"
+
   app:
     restart: always
     image: chatbot-app
+    build:
+      context: .
+      dockerfile: chatbot-app.Dockerfile
     expose:
       - 5055
     volumes:
@@ -120,6 +131,7 @@ services:
       --debug
     depends_on:
       - rasa-production
+
   nginx:
     restart: always
     image: rasa/nginx:${RASA_X_VERSION}
@@ -133,6 +145,7 @@ services:
       - rasa-x
       - rasa-production
       - app
+
   logger:
     restart: always
     image: rasa/logger:${RASA_X_VERSION}
@@ -145,6 +158,7 @@ services:
     working_dir: /etc/rasa
     depends_on:
       - nginx
+
   redis:
     restart: always
     image: bitnami/redis:5.0.5
